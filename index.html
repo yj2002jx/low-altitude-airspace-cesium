@@ -16,7 +16,12 @@
     <script src="https://cdn.jsdelivr.net/npm/cesium@1.109.0/Build/Cesium/Cesium.js"></script>
     <script>
         // 初始化Viewer
-        const viewer = new Cesium.Viewer('cesiumContainer');
+        const viewer = new Cesium.Viewer('cesiumContainer', {
+    baseLayer: new Cesium.OpenStreetMapImageryProvider({
+        url: 'https://tile.openstreetmap.org/'
+    })
+});
+
         viewer.cesiumWidget.creditContainer.style.display = 'none';
 
         // ========== 三维效果增强 ==========
