@@ -196,25 +196,26 @@ buildings.forEach(b => {
     }));
 });
 
-// ========== 无人机（用简单几何体当模型） ==========
+// ========== 无人机（圆形图标 + 自动飞行） ==========
 
-// 无人机参数
+// 无人机参数（调整到禁飞区外面）
 const droneData = [
-    { name: "巡检机", color: Cesium.Color.BLUE, lon: 117.21, lat: 31.82, h: 80 },
-    { name: "配送机", color: Cesium.Color.ORANGE, lon: 117.23, lat: 31.81, h: 100 },
-    { name: "测绘机", color: Cesium.Color.PURPLE, lon: 117.24, lat: 31.83, h: 60 },
-    { name: "救援机", color: Cesium.Color.RED, lon: 117.22, lat: 31.825, h: 120 }
+    { name: "巡检机", color: Cesium.Color.BLUE, lon: 117.26, lat: 31.82, h: 80, targetLon: 117.28, targetLat: 31.83 },
+    { name: "配送机", color: Cesium.Color.ORANGE, lon: 117.19, lat: 31.825, h: 100, targetLon: 117.17, targetLat: 31.82 },
+    { name: "测绘机", color: Cesium.Color.PURPLE, lon: 117.23, lat: 31.85, h: 60, targetLon: 117.22, targetLat: 31.86 },
+    { name: "救援机", color: Cesium.Color.RED, lon: 117.22, lat: 31.78, h: 120, targetLon: 117.24, targetLat: 31.775 }
 ];
 
 droneData.forEach(d => {
-    // 无人机主体（用盒子当模型）
+    // 无人机（圆形图标）
     droneEntities.push(viewer.entities.add({
         name: d.name,
         position: Cesium.Cartesian3.fromDegrees(d.lon, d.lat, d.h),
-        box: {
-            dimensions: new Cesium.Cartesian3(8, 8, 3),
-            material: d.color,
-            outline: true, outlineColor: Cesium.Color.WHITE
+        point: {
+            pixelSize: 14,
+            color: d.color,
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 2
         },
         label: {
             text: d.name, font: "11px sans-serif",
@@ -224,13 +225,13 @@ droneData.forEach(d => {
         }
     }));
 
-    // 飞行轨迹（虚线）
+    // 飞行航线（从起点到终点）
     trailEntities.push(viewer.entities.add({
-        name: d.name + " 轨迹",
+        name: d.name + " 航线",
         polyline: {
             positions: Cesium.Cartesian3.fromDegreesArrayHeights([
-                d.lon - 0.005, d.lat - 0.003, d.h,
-                d.lon, d.lat, d.h
+                d.lon, d.lat, d.h,
+                d.targetLon, d.targetLat, d.h
             ]),
             width: 2,
             material: new Cesium.PolylineDashMaterialProperty({
@@ -239,6 +240,32 @@ droneData.forEach(d => {
         }
     }));
 });
+
+// 无人机自动飞行动画
+let flyTick = 0;
+viewer.clock.onTick.addEventListener(function() {
+    flyTick++;
+    // 每30帧更新一次位置
+    if(flyTick % 30 === 0) {
+        droneData.forEach((d, i) => {
+            // 慢慢向目标点移动
+            d.lon += (d.targetLon - d.lon) * 0.01;
+            d.lat += (d.targetLat - d.lat) * 0.01;
+            droneEntities[i].position = Cesium.Cartesian3.fromDegrees(d.lon, d.lat, d.h);
+            
+            // 飞到终点就掉头（循环飞）
+            if(Math.abs(d.lon - d.targetLon) < 0.001 && Math.abs(d.lat - d.targetLat) < 0.001) {
+                let tempLon = d.lon;
+                let tempLat = d.lat;
+                d.lon = d.targetLon;
+                d.lat = d.targetLat;
+                d.targetLon = tempLon;
+                d.targetLat = tempLat;
+            }
+        });
+    }
+});
+
 
 // ========== 图层开关 ==========
 document.getElementById("btnNoFly").onclick = () => noFlyEntity.show = !noFlyEntity.show;
