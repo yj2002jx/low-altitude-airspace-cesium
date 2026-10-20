@@ -2,7 +2,12 @@
 
 基于 **Cesium.js** 的低空经济三维可视化 Demo，模拟城市低空空域管理场景，展示无人机实时监控、空域分区、飞行航线等核心功能。
 
-![项目截图](https://github.com/yj2002jx/low-altitude-airspace-cesium/raw/main/screenshot.png)
+<img width="1905" height="905" alt="4575604cc928518ee82fede5bc91eb11" src="https://github.com/user-attachments/assets/574d05b1-5481-49b1-a0c8-c4ca5daca769" />
+<img width="1838" height="879" alt="bec9bb5cf6595fc8d4833bd4a44dcf24" src="https://github.com/user-attachments/assets/94ff60ef-b343-4d4e-a83f-afaed6bc055e" />
+<img width="1869" height="900" alt="2e7002bb4a944c99388c8eb8535e6e64" src="https://github.com/user-attachments/assets/4cab99eb-b045-49b9-a389-15bd8f572d83" />
+
+
+
 
 ---
 
