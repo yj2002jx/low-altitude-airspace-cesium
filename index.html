@@ -3,204 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <title>低空空域管理三维可视化平台</title>
-    <link href="https://cdn.jsdelivr.net/npm/cesium@1.118/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/cesium@1.109.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { overflow: hidden; font-family: sans-serif; }
-        #map { width: 100vw; height: 100vh; }
-
-        .header {
-            position: absolute; top: 0; left: 0; right: 0; height: 50px;
-            background: linear-gradient(135deg, #0d47a1, #1565c0);
-            color: #fff; display: flex; align-items: center; padding: 0 20px; z-index: 100;
-        }
-        .header h1 { font-size: 16px; }
-
-        .panel {
-            position: absolute; background: rgba(255,255,255,0.95);
-            border-radius: 8px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); z-index: 99;
-        }
-        .panel-left { top: 60px; left: 10px; width: 200px; }
-        .panel-right { top: 60px; right: 10px; width: 220px; }
-        .panel h3 { font-size: 13px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #eee; color: #333; }
-        .row { display: flex; align-items: center; padding: 5px 0; font-size: 12px; color: #555; cursor: pointer; }
-        .row input { margin-right: 8px; cursor: pointer; }
-        .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
-
-        .drone-card { background: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 6px; font-size: 11px; }
-        .drone-card .name { font-weight: 600; color: #1565c0; margin-bottom: 4px; }
-        .drone-card .line { display: flex; justify-content: space-between; color: #666; }
-
-        .footer {
-            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.7); color: #fff; padding: 6px 16px;
-            border-radius: 20px; font-size: 11px; z-index: 99;
-        }
+        #cesiumContainer { width: 100vw; height: 100vh; }
     </style>
 </head>
 <body>
-    <div id="map"></div>
+    <div id="cesiumContainer"></div>
 
-    <div class="header">
-        <h1>🛩️ 低空空域管理三维可视化平台</h1>
-    </div>
-
-    <!-- 左侧图层控制 -->
-    <div class="panel panel-left">
-        <h3>图层控制</h3>
-        <div class="row"><input type="checkbox" id="ckNoFly" checked><span class="dot" style="background:#f44336;"></span>禁飞区</div>
-        <div class="row"><input type="checkbox" id="ckRestricted" checked><span class="dot" style="background:#ffeb3b;"></span>限飞区</div>
-        <div class="row"><input type="checkbox" id="ckPath" checked><span class="dot" style="background:#4caf50;"></span>飞行航线</div>
-        <div class="row"><input type="checkbox" id="ckDrone" checked><span class="dot" style="background:#2196f3;"></span>无人机</div>
-    </div>
-
-    <!-- 右侧实时状态 -->
-    <div class="panel panel-right">
-        <h3>实时监控</h3>
-        <div id="droneList"></div>
-    </div>
-
-    <div class="footer" id="footer">点击地图查看坐标 | 点击无人机查看详情</div>
-
-    <script src="https://cdn.jsdelivr.net/npm/cesium@1.118/Build/Cesium/Cesium.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cesium@1.109.0/Build/Cesium/Cesium.js"></script>
     <script>
-        // ========== 底图配置（和日坛项目一样的逻辑） ==========
-        // 天地图Token（和你日坛项目用同一个）
-        const TIANDITU_TOKEN = '你的天地图Token';
-
-        let imageryLayers = [];
-
-        // 尝试加载天地图
-        try {
-            // 天地图矢量底图
-            const vecLayer = new Cesium.UrlTemplateImageryProvider({
-                url: `https://t{s}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&tk=${TIANDITU_TOKEN}&subdomains=['0','1','2','3','4','5','6','7']`
-            });
-            imageryLayers.push(vecLayer);
-        } catch(e) {
-            console.log('天地图加载失败，降级到OSM');
-        }
-
-        // ========== 初始化Viewer ==========
-        const viewer = new Cesium.Viewer('map', {
-            baseLayerPicker: false,
-            geocoder: false,
-            homeButton: false,
-            sceneModePicker: false,
-            navigationHelpButton: false,
-            animation: false,
-            timeline: false,
-            fullscreenButton: false,
-            // 如果天地图失败就用OSM
-            baseLayer: imageryLayers.length > 0 
-                ? imageryLayers[0] 
-                : new Cesium.OpenStreetMapImageryProvider({
-                    url: 'https://tile.openstreetmap.org/'
-                })
-        });
-
+        // 初始化Viewer
+        const viewer = new Cesium.Viewer('cesiumContainer');
         viewer.cesiumWidget.creditContainer.style.display = 'none';
 
-        // 初始视角：合肥
-        viewer.camera.setView({
-            destination: Cesium.Cartesian3.fromDegrees(117.2272, 31.8206, 8000),
-            orientation: { heading: 0, pitch: Cesium.Math.toRadians(-45), roll: 0 }
+        // ========== 三维效果增强 ==========
+        // 开启大气效果
+        viewer.scene.globe.enableLighting = true;
+        viewer.scene.skyAtmosphere.show = true;
+        
+        // 开启地形深度测试（让物体看起来是贴在地面上的）
+        viewer.scene.globe.depthTestAgainstTerrain = true;
+
+        // 飞到合肥市区，降低高度看立体感
+        viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(117.2272, 31.8206, 2000),
+            orientation: {
+                heading: Cesium.Math.toRadians(0),
+                pitch: Cesium.Math.toRadians(-60),
+                roll: 0
+            }
+        });
+
+        // ========== 模拟三维建筑（灰色方块） ==========
+        const buildings = [
+            { lon: 117.215, lat: 31.818, height: 80 },
+            { lon: 117.220, lat: 31.822, height: 120 },
+            { lon: 117.225, lat: 31.819, height: 60 },
+            { lon: 117.230, lat: 31.823, height: 100 },
+            { lon: 117.218, lat: 31.825, height: 90 },
+        ];
+
+        buildings.forEach(b => {
+            viewer.entities.add({
+                position: Cesium.Cartesian3.fromDegrees(b.lon, b.lat, b.height / 2),
+                box: {
+                    dimensions: new Cesium.Cartesian3(50, 50, b.height),
+                    material: Cesium.Color.GRAY.withAlpha(0.7),
+                    outline: true,
+                    outlineColor: Cesium.Color.DARKGRAY
+                }
+            });
         });
 
         // ========== 空域图层 ==========
 
-        // 禁飞区（红色）
-        const noFly = viewer.entities.add({
+        // 1. 禁飞区（红色）
+        viewer.entities.add({
+            name: '禁飞区',
             polygon: {
-                hierarchy: Cesium.Cartesian3.fromDegreesArray([117.20,31.81, 117.25,31.81, 117.25,31.84, 117.20,31.84]),
+                hierarchy: Cesium.Cartesian3.fromDegreesArray([
+                    117.20, 31.81,
+                    117.25, 31.81,
+                    117.25, 31.84,
+                    117.20, 31.84
+                ]),
                 material: Cesium.Color.RED.withAlpha(0.3),
-                outline: true, outlineColor: Cesium.Color.RED
-            },
-            label: { text: '禁飞区', font: '12px sans-serif', fillColor: Cesium.Color.RED,
-                     showBackground: true, backgroundColor: Cesium.Color.WHITE.withAlpha(0.8),
-                     pixelOffset: new Cesium.Cartesian2(0,-20) }
-        });
-
-        // 限飞区（黄色）
-        const restricted = viewer.entities.add({
-            polygon: {
-                hierarchy: Cesium.Cartesian3.fromDegreesArray([117.18,31.79, 117.27,31.79, 117.27,31.805, 117.18,31.805]),
-                material: Cesium.Color.YELLOW.withAlpha(0.3),
-                outline: true, outlineColor: Cesium.Color.YELLOW
-            },
-            label: { text: '限飞区(120m以下)', font: '12px sans-serif', fillColor: Cesium.Color.ORANGE,
-                     showBackground: true, backgroundColor: Cesium.Color.WHITE.withAlpha(0.8),
-                     pixelOffset: new Cesium.Cartesian2(0,-20) }
-        });
-
-        // 演示航线（绿色）
-        const path = viewer.entities.add({
-            polyline: {
-                positions: Cesium.Cartesian3.fromDegreesArrayHeights([117.19,31.795,80, 117.21,31.80,90, 117.23,31.80,85, 117.25,31.805,100]),
-                width: 3, material: Cesium.Color.GREEN
-            },
-            label: { text: '演示航线', font: '11px sans-serif', fillColor: Cesium.Color.GREEN,
-                     showBackground: true, backgroundColor: Cesium.Color.WHITE.withAlpha(0.8),
-                     pixelOffset: new Cesium.Cartesian2(0,-20) }
-        });
-
-        // ========== 无人机 ==========
-        const drones = [
-            { id:'UAV-001', name:'巡检机', lon:117.21, lat:31.82, h:80, speed:10 },
-            { id:'UAV-002', name:'配送机', lon:117.23, lat:31.81, h:100, speed:15 },
-            { id:'UAV-003', name:'测绘机', lon:117.24, lat:31.83, h:60, speed:8 }
-        ];
-        const droneEnts = [];
-        drones.forEach((d, i) => {
-            const ent = viewer.entities.add({
-                position: Cesium.Cartesian3.fromDegrees(d.lon, d.lat, d.h),
-                point: { pixelSize: 12, color: Cesium.Color.BLUE, outlineColor: Cesium.Color.WHITE, outlineWidth: 2 },
-                label: { text: d.name, font: '11px sans-serif', showBackground: true,
-                         backgroundColor: Cesium.Color.WHITE.withAlpha(0.8), pixelOffset: new Cesium.Cartesian2(0,-20) },
-                properties: { id: d.id, name: d.name }
-            });
-            droneEnts.push(ent);
-        });
-
-        // 右侧列表
-        const listEl = document.getElementById('droneList');
-        drones.forEach(d => {
-            const div = document.createElement('div');
-            div.className = 'drone-card';
-            div.innerHTML = `<div class="name">${d.id} ${d.name}</div>
-                <div class="line"><span>高度</span><span>${d.h}m</span></div>
-                <div class="line"><span>速度</span><span>${d.speed}m/s</span></div>
-                <div class="line"><span>状态</span><span style="color:#4caf50;">● 飞行中</span></div>`;
-            listEl.appendChild(div);
-        });
-
-        // ========== 图层开关 ==========
-        document.getElementById('ckNoFly').onchange = e => noFly.show = e.target.checked;
-        document.getElementById('ckRestricted').onchange = e => restricted.show = e.target.checked;
-        document.getElementById('ckPath').onchange = e => path.show = e.target.checked;
-        document.getElementById('ckDrone').onchange = e => droneEnts.forEach(x => x.show = e.target.checked);
-
-        // ========== 点击显示坐标 ==========
-        const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-        handler.setInputAction((movement) => {
-            const cart = viewer.camera.pickEllipsoid(movement.position);
-            if (cart) {
-                const c = Cesium.Cartographic.fromCartesian(cart);
-                document.getElementById('footer').textContent = 
-                    `坐标：${Cesium.Math.toDegrees(c.longitude).toFixed(4)}°E, ${Cesium.Math.toDegrees(c.latitude).toFixed(4)}°N`;
+                outline: true,
+                outlineColor: Cesium.Color.RED,
+                height: 150
             }
-        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+        });
 
-        // ========== 模拟无人机移动 ==========
-        let tick = 0;
-        viewer.clock.onTick.addEventListener(() => {
-            tick++;
-            if (tick % 30 === 0) {
-                drones.forEach((d, i) => {
-                    d.lon += (Math.random() - 0.5) * 0.001;
-                    d.lat += (Math.random() - 0.5) * 0.001;
-                    droneEnts[i].position = Cesium.Cartesian3.fromDegrees(d.lon, d.lat, d.h);
-                });
+        // 2. 限飞区（黄色）
+        viewer.entities.add({
+            name: '限飞区',
+            polygon: {
+                hierarchy: Cesium.Cartesian3.fromDegreesArray([
+                    117.18, 31.79,
+                    117.27, 31.79,
+                    117.27, 31.805,
+                    117.18, 31.805
+                ]),
+                material: Cesium.Color.YELLOW.withAlpha(0.3),
+                outline: true,
+                outlineColor: Cesium.Color.YELLOW,
+                height: 120
+            }
+        });
+
+        // 3. 演示航线（绿色线，有高度）
+        viewer.entities.add({
+            name: '演示航线',
+            polyline: {
+                positions: Cesium.Cartesian3.fromDegreesArrayHeights([
+                    117.19, 31.795, 80,
+                    117.21, 31.80, 90,
+                    117.23, 31.80, 85,
+                    117.25, 31.805, 100
+                ]),
+                width: 3,
+                material: Cesium.Color.GREEN
+            }
+        });
+
+        // 4. 无人机（不同颜色不同类型）
+        viewer.entities.add({
+            name: '巡检无人机（蓝色）',
+            position: Cesium.Cartesian3.fromDegrees(117.21, 31.82, 80),
+            point: {
+                pixelSize: 14,
+                color: Cesium.Color.BLUE,
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 2
+            }
+        });
+
+        viewer.entities.add({
+            name: '配送无人机（橙色）',
+            position: Cesium.Cartesian3.fromDegrees(117.23, 31.81, 100),
+            point: {
+                pixelSize: 14,
+                color: Cesium.Color.ORANGE,
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 2
+            }
+        });
+
+        viewer.entities.add({
+            name: '测绘无人机（紫色）',
+            position: Cesium.Cartesian3.fromDegrees(117.24, 31.83, 60),
+            point: {
+                pixelSize: 14,
+                color: Cesium.Color.PURPLE,
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 2
+            }
+        });
+
+        viewer.entities.add({
+            name: '应急救援无人机（红色）',
+            position: Cesium.Cartesian3.fromDegrees(117.22, 31.825, 120),
+            point: {
+                pixelSize: 14,
+                color: Cesium.Color.RED,
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 2
             }
         });
 
