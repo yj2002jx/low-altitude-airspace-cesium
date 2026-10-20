@@ -65,11 +65,16 @@
     <script src="https://cdn.jsdelivr.net/npm/cesium@1.118/Build/Cesium/Cesium.js"></script>
     <script>
         // ========== 初始化 ==========
-        const viewer = new Cesium.Viewer('map', {
-            baseLayerPicker: false, geocoder: false, homeButton: false,
-            sceneModePicker: false, navigationHelpButton: false,
-            animation: false, timeline: false, fullscreenButton: false
-        });
+        // 用OpenStreetMap作为底图，不需要Token
+const viewer = new Cesium.Viewer('map', {
+    baseLayerPicker: false, geocoder: false, homeButton: false,
+    sceneModePicker: false, navigationHelpButton: false,
+    animation: false, timeline: false, fullscreenButton: false,
+    baseLayer: Cesium.ImageryLayer.fromProviderAsync(
+        Cesium.OpenStreetMapImageryProvider.fromUrl('https://tile.openstreetmap.org/')
+    )
+});
+
         viewer.cesiumWidget.creditContainer.style.display = 'none';
 
         // 初始视角：合肥
